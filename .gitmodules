@@ -1,0 +1,3 @@
+[submodule "examples/parse-where"]
+	path = examples/parse-where
+	url = git://github.com/josher19/parse-where/
