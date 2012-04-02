@@ -7,7 +7,7 @@
 
   Feature("SQL-like Syntax", "As someone who knows SQL", "I want to be able to use SQL syntax in CoffeeScript", "So it will be easier to manipulate JSON data", function() {
     return Scenario("3 possible different styles for SQL in CoffeeScript: object, global functions, dot-functions", function() {
-      var SQL, jsonstore, results;
+      var SQL, company, jsonstore, results;
       SQL = null;
       results = null;
       jsonstore = {
@@ -22,6 +22,21 @@
         ],
         count: 3
       };
+      company = [
+        {
+          name: 'alice',
+          salary: 50,
+          dept: 'Engineering'
+        }, {
+          name: 'bob',
+          salary: 40,
+          dept: 'HR'
+        }, {
+          name: 'james',
+          salary: 45,
+          dept: 'Engineering'
+        }
+      ];
       Given("I am starting a CoffeeScript file", function() {});
       When("I require SQL", function() {
         return SQL = require('./SQL');
@@ -39,7 +54,9 @@
       });
       When("I can pass it an object with SELECT, FROM, and WHERE keys", function() {
         return results = SQL({
-          SELECT: "name",
+          SELECT: function(r) {
+            return r.name;
+          },
           FROM: jsonstore.results,
           WHERE: function(r) {
             return r.name !== "Josh";
@@ -58,7 +75,9 @@
       });
       When("I can pass it an object with SELECT, FROM, and WHERE keys", function() {
         return results = SQL({
-          SELECT: "name",
+          SELECT: function(r) {
+            return r.name;
+          },
           FROM: jsonstore.results,
           WHERE: function(r) {
             return r.name !== "Josh";
@@ -69,44 +88,50 @@
       Then("results are returned as an Array", function() {
         should.exist(results);
         should.exist(results.length);
-        Array.isArray(results).should.be["true"];
         return results.should.have.length(1);
       });
       Given("I should be able to use a fluent SQL dot-syntax", function() {
         return SQL = require('./SQL');
       });
       When("I call SQL.SELECT(fields).FROM(table).WHERE(...)", function() {
-        return results = SQL.SELECT("name").FROM(jsonstore.results).WHERE(function(r) {
+        return results = SQL.SELECT(function(r) {
+          return r.name;
+        }).FROM(jsonstore.results).WHERE(function(r) {
           return r.name !== "Josh";
         }).LIMIT(1);
       });
       Then("results are returned as an Array", function() {
         should.exist(results);
         should.exist(results.length);
-        Array.isArray(results).should.be["true"];
         return results.length.should.eql(1);
       });
       Given("I should be able to use a functional syntax", function() {});
       When("I call SELECT(fields, FROM(table, WHERE(...)))", function() {
         var FROM, LIMIT, SELECT, WHERE, _ref;
         _ref = require('./SQL'), SELECT = _ref.SELECT, FROM = _ref.FROM, WHERE = _ref.WHERE, LIMIT = _ref.LIMIT;
-        return results = SELECT("name", FROM(jsonstore.results, WHERE(function(r) {
+        return results = SELECT(function() {
+          return [this.name];
+        }, FROM(jsonstore.results, WHERE(function(r) {
           return r.name !== "Josh";
         }, LIMIT(1))));
       });
       Then("results are returned as an Array", function() {
         should.exist(results);
         should.exist(results.length);
-        Array.isArray(results).should.be["true"];
         return results.length.should.eql(1);
       });
       Given("I should be able to use AS as a keyword", function() {});
-      When("I call SELECT(fields, FROM(table, WHERE(...)))", function() {
+      When("I call SELECT(field AS name, FROM(table, WHERE(...)))", function() {
+        String.prototype.AS = function(key, o) {
+          if (o == null) o = {};
+          o[key] = this.toString();
+          return o;
+        };
         return results = SQL({
           SELECT: function(r) {
-            return r.name(AS("firstname", r.middlename.charAt(1)(AS(middle_initial, r.lastname(AS(surname))))));
+            return r.name.AS("firstname", r.name.charAt(0).AS('middle_initial', r.name.AS('surname')));
           },
-          FROM: jsonstore.results(AS(r)),
+          FROM: jsonstore.results,
           WHERE: function(r) {
             return r.name !== "Josh";
           },
@@ -116,8 +141,8 @@
       return Then("results are returned as an Array", function() {
         should.exist(results);
         should.exist(results.length);
-        Array.isArray(results).should.be["true"];
-        return results.length.should.eql(1);
+        results.length.should.eql(1);
+        return console.log(results);
       });
     });
   });
